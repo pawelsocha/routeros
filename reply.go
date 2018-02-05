@@ -3,6 +3,7 @@ package routeros
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 
 	"github.com/pawelsocha/routeros/proto"
 )
@@ -55,4 +56,50 @@ func (r *Reply) processSentence(sen *proto.Sentence) (bool, error) {
 		return true, &UnknownReplyError{sen}
 	}
 	return false, nil
+}
+
+func (r *Reply) fillRow(record *proto.Sentence, reftype reflect.Type) reflect.Value {
+	value := reflect.New(reftype).Elem()
+
+	for i := 0; i < reftype.NumField(); i++ {
+		tag := reftype.Field(i).Tag.Get("routeros")
+		if tag == "" {
+			continue
+		}
+
+		if data, ok := record.Map[tag]; ok {
+			value.FieldByName(reftype.Field(i).Name).SetString(data)
+		}
+	}
+	return value
+}
+
+//Fetch map data to struct
+func (r *Reply) Fetch(out interface{}) error {
+	if reflect.TypeOf(out).Kind() != reflect.Ptr {
+		return fmt.Errorf("Out variable is not a pointer. Type: %v", reflect.TypeOf(out).Kind())
+	}
+
+	if len(r.Re) < 1 {
+		return fmt.Errorf("Empty data returned from routeros")
+	}
+
+	value := reflect.ValueOf(out).Elem()
+
+	switch value.Kind() {
+	case reflect.Struct:
+		if len(r.Re) > 1 {
+			return fmt.Errorf("Too many records returned from routeros")
+		}
+
+		value.Set(r.fillRow(r.Re[0], value.Type()))
+	case reflect.Slice:
+		row := value.Type().Elem()
+
+		for _, data := range r.Re {
+			value.Set(reflect.Append(value, r.fillRow(data, row)))
+		}
+
+	}
+	return nil
 }
