@@ -31,6 +31,13 @@ type Client struct {
 	mu      sync.Mutex
 }
 
+//Entity describe a record in specific path
+type Entity interface {
+	Path() string
+	Where() string
+	GetId() string
+}
+
 // NewClient returns a new Client over rwc. Login must be called.
 func NewClient(rwc io.ReadWriteCloser) (*Client, error) {
 	return &Client{
