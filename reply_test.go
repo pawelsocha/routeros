@@ -10,6 +10,22 @@ type Platform struct {
 	Arch string `routeros:"architecture-name"`
 }
 
+type Resource struct {
+	Platform string `routeros:"platform"`
+}
+
+func (q Resource) Path() string {
+	return "/system/resource/"
+}
+
+func (q Resource) Where() string {
+	return ""
+}
+
+func (q Resource) GetId() string {
+	return ""
+}
+
 func TestFetchSingleRow(t *testing.T) {
 
 	c, err := DialTimeout(*routerosAddress, *routerosUsername, *routerosPassword, time.Second)
@@ -20,7 +36,7 @@ func TestFetchSingleRow(t *testing.T) {
 
 	ret, err := c.RunArgs([]string{"/system/resource/print", "=.proplist=platform,architecture-name"})
 	if err != nil {
-		t.Fatalf("Ger resource command returns error. Error: %s", err)
+		t.Fatalf("Get resource command returns error. Error: %s", err)
 	}
 	platform := Platform{}
 	ret.Fetch(&platform)
@@ -38,5 +54,24 @@ func TestFetchSingleRow(t *testing.T) {
 	}
 
 	defer c.Close()
+}
 
+func TestFetchInterface(t *testing.T) {
+
+	c, err := DialTimeout(*routerosAddress, *routerosUsername, *routerosPassword, time.Second)
+
+	if err != nil {
+		t.Fatalf("Connection error. Error: %s", err)
+	}
+	r := Resource{}
+	err = c.Print(&r)
+
+	if err != nil {
+		t.Fatalf("Print commant error. Error: %s", err)
+	}
+
+	if r.Platform != "MikroTik" {
+		t.Fatalf("Platform should have MikroTik string. Got: %s", r.Platform)
+	}
+	defer c.Close()
 }

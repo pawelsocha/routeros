@@ -58,17 +58,19 @@ func (r *Reply) processSentence(sen *proto.Sentence) (bool, error) {
 	return false, nil
 }
 
-func (r *Reply) fillRow(record *proto.Sentence, reftype reflect.Type) reflect.Value {
-	value := reflect.New(reftype).Elem()
+func (r *Reply) fillRow(record *proto.Sentence, value reflect.Value) reflect.Value {
 
-	for i := 0; i < reftype.NumField(); i++ {
-		tag := reftype.Field(i).Tag.Get("routeros")
+	typ := value.Type()
+	for i := 0; i < value.NumField(); i++ {
+
+		tag := typ.Field(i).Tag.Get("routeros")
+
 		if tag == "" {
 			continue
 		}
 
 		if data, ok := record.Map[tag]; ok {
-			value.FieldByName(reftype.Field(i).Name).SetString(data)
+			value.FieldByName(typ.Field(i).Name).SetString(data)
 		}
 	}
 	return value
@@ -85,21 +87,18 @@ func (r *Reply) Fetch(out interface{}) error {
 	}
 
 	value := reflect.ValueOf(out).Elem()
-
 	switch value.Kind() {
 	case reflect.Struct:
 		if len(r.Re) > 1 {
 			return fmt.Errorf("Too many records returned from routeros")
 		}
 
-		value.Set(r.fillRow(r.Re[0], value.Type()))
+		value.Set(r.fillRow(r.Re[0], value))
 	case reflect.Slice:
-		row := value.Type().Elem()
-
+		newobj := reflect.New(value.Type())
 		for _, data := range r.Re {
-			value.Set(reflect.Append(value, r.fillRow(data, row)))
+			value.Set(reflect.Append(value, r.fillRow(data, newobj)))
 		}
-
 	}
 	return nil
 }
