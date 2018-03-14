@@ -108,7 +108,7 @@ func (c *Client) valuelist(obj interface{}) []string {
 }
 
 //Print print data from specific path
-func (c *Client) Print(i Entity) error {
+func (c *Client) Print(i Entity) (*Reply, error) {
 	sentence := []string{
 		fmt.Sprintf("%s/print", i.Path()),
 	}
@@ -123,13 +123,7 @@ func (c *Client) Print(i Entity) error {
 		sentence = append(sentence, "=.proplist="+plist)
 	}
 
-	ret, err := c.RunArgs(sentence)
-	if err != nil {
-		return err
-	}
-
-	err = ret.Fetch(i)
-	return err
+	return c.RunArgs(sentence)
 }
 
 //Add create new entity
@@ -139,7 +133,7 @@ func (c *Client) Add(i Entity) error {
 	}
 	sentence = append(sentence, c.valuelist(i)...)
 
-	ret, err := c.RunArgs(sentence)
+	_, err := c.RunArgs(sentence)
 	return err
 }
 
@@ -155,6 +149,22 @@ func (c *Client) Remove(i Entity) error {
 		fmt.Sprintf("%s/remove", i.Path()),
 		fmt.Sprintf("=.id=%s", id),
 	}
+
+	_, err := c.RunArgs(sentence)
+	return err
+}
+
+//Print print data from specific path
+func (c *Client) Edit(i Entity) error {
+	id := i.GetId()
+	if id == "" {
+		return fmt.Errorf("Id is empty.\n")
+	}
+	sentence := []string{
+		fmt.Sprintf("%s/set", i.Path()),
+	}
+
+	sentence = append(sentence, c.valuelist(i)...)
 
 	_, err := c.RunArgs(sentence)
 	return err

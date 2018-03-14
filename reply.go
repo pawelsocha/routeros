@@ -76,6 +76,17 @@ func (r *Reply) fillRow(record *proto.Sentence, value reflect.Value) reflect.Val
 	return value
 }
 
+func Generator(r *Reply) chan *proto.Sentence {
+	ret := make(chan *proto.Sentence, len(r.Re))
+	defer close(ret)
+
+	for _, data := range r.Re {
+		ret <- data
+	}
+
+	return ret
+}
+
 //Fetch map data to struct
 func (r *Reply) Fetch(out interface{}) error {
 	if reflect.TypeOf(out).Kind() != reflect.Ptr {
